@@ -2,6 +2,28 @@ import { Activity as ActivityIcon, Home as HomeIcon, Plus, Scale, Users, Wallet 
 import { useState } from 'react'
 import { HashRouter, NavLink, Navigate, Route, Routes, useParams } from 'react-router-dom'
 import { AndroidBack } from './AndroidBack'
+
+/**
+ * Whole-app visual scale.
+ *
+ * Round 1 used CSS `zoom` at 0.75 (25% smaller). Two problems came back:
+ * it felt too small, and it rendered a different size on different phones.
+ * Both point at the same root cause — `zoom` is a non-standard Blink
+ * property, and different OEM WebView forks (Samsung Internet's engine,
+ * MIUI's, stock AOSP) don't all implement it the same way. It was never a
+ * reliable lever.
+ *
+ * `transform: scale()` is different: it's plain CSS, guaranteed by spec to
+ * render identically everywhere Chromium runs, and — critically — a
+ * transformed ancestor becomes the containing block for any `position:
+ * fixed` descendant (also spec, not a browser quirk). That's what makes the
+ * bottom nav bar scale and reposition correctly along with everything else,
+ * the same behavior `zoom` gave us but through a mechanism every device
+ * actually agrees on.
+ *
+ * Tune only this constant.
+ */
+const APP_SCALE = 0.9
 import Trips from './screens/Trips'
 import Home from './screens/Home'
 import Activity from './screens/Activity'
@@ -41,7 +63,7 @@ function TripWorkspace({ tab }: { tab: Tab }) {
 
   return (
     <Screen>
-      <TopBar title={heads[tab].title} subtitle={heads[tab].subtitle} back={tab !== 'home'} />
+      <TopBar title={heads[tab].title} subtitle={heads[tab].subtitle} back backTo={tab === 'home' ? '/' : undefined} />
 
       {tab === 'home' && <Home t={t} onAdd={() => setAdding(true)} />}
       {tab === 'activity' && <Activity t={t} />}
@@ -97,16 +119,31 @@ export default function App() {
   return (
     <HashRouter>
       <AndroidBack />
-      <div className="max-w-lg mx-auto min-h-full bg-surface-sunk">
-        <Routes>
-          <Route path="/" element={<Trips />} />
-          <Route path="/trip/:id" element={<TripWorkspace tab="home" />} />
-          <Route path="/trip/:id/activity" element={<TripWorkspace tab="activity" />} />
-          <Route path="/trip/:id/people" element={<TripWorkspace tab="people" />} />
-          <Route path="/trip/:id/money" element={<TripWorkspace tab="money" />} />
-          <Route path="/trip/:id/settle" element={<TripWorkspace tab="settle" />} />
-          <Route path="*" element={<Navigate to="/" replace />} />
-        </Routes>
+      {/* Outer: pinned to the real viewport, and the ONLY thing that scrolls.
+          Inner: the actual app, rendered at 1/APP_SCALE size then visually
+          scaled down — so its layout math is unaffected, only its rendered
+          pixels are smaller. */}
+      <div style={{ position: 'fixed', inset: 0, overflowY: 'auto', overscrollBehaviorY: 'none' }}>
+        <div
+          style={{
+            transform: `scale(${APP_SCALE})`,
+            transformOrigin: 'top left',
+            width: `${100 / APP_SCALE}%`,
+            minHeight: `${100 / APP_SCALE}%`,
+          }}
+        >
+          <div className="max-w-lg mx-auto min-h-full bg-surface-sunk">
+            <Routes>
+              <Route path="/" element={<Trips />} />
+              <Route path="/trip/:id" element={<TripWorkspace tab="home" />} />
+              <Route path="/trip/:id/activity" element={<TripWorkspace tab="activity" />} />
+              <Route path="/trip/:id/people" element={<TripWorkspace tab="people" />} />
+              <Route path="/trip/:id/money" element={<TripWorkspace tab="money" />} />
+              <Route path="/trip/:id/settle" element={<TripWorkspace tab="settle" />} />
+              <Route path="*" element={<Navigate to="/" replace />} />
+            </Routes>
+          </div>
+        </div>
       </div>
     </HashRouter>
   )

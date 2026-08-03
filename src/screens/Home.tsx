@@ -100,6 +100,36 @@ export default function Home({ t, onAdd }: { t: TripView; onAdd: () => void }) {
         </div>
       </Section>
 
+      {/* ACTIONS — moved right after the headline number. Feedback: this
+          required scrolling all the way down to reach, on a screen whose
+          whole point is fast recording. The three actions here are the ones
+          someone taps mid-trip, not end-of-trip, so they belong near the top. */}
+      <Section title="Quick actions">
+        <div className="grid grid-cols-3 gap-2.5">
+          <button
+            onClick={onAdd}
+            className="bg-brand-deep text-white rounded-2xl py-4 flex flex-col items-center gap-1.5 active:scale-[0.97] transition"
+          >
+            <Plus size={19} />
+            <span className="text-[12.5px] font-semibold">Add expense</span>
+          </button>
+          <button
+            onClick={() => nav(`/trip/${id}/money`)}
+            className="card py-4 flex flex-col items-center gap-1.5 row-press text-ink-soft"
+          >
+            <Wallet size={19} />
+            <span className="text-[12.5px] font-semibold">Add money</span>
+          </button>
+          <button
+            onClick={() => nav(`/trip/${id}/settle`)}
+            className="card py-4 flex flex-col items-center gap-1.5 row-press text-ink-soft"
+          >
+            <Scale size={19} />
+            <span className="text-[12.5px] font-semibold">Settle up</span>
+          </button>
+        </div>
+      </Section>
+
       {/* SECONDARY — what happened today */}
       <Section
         title="Today's spending"
@@ -185,33 +215,6 @@ export default function Home({ t, onAdd }: { t: TripView; onAdd: () => void }) {
             </span>
           ))}
         </button>
-      </Section>
-
-      {/* ACTIONS — last, because they're the least informative thing here */}
-      <Section title="Quick actions">
-        <div className="grid grid-cols-3 gap-2.5">
-          <button
-            onClick={onAdd}
-            className="bg-brand-deep text-white rounded-2xl py-4 flex flex-col items-center gap-1.5 active:scale-[0.97] transition"
-          >
-            <Plus size={19} />
-            <span className="text-[12.5px] font-semibold">Add expense</span>
-          </button>
-          <button
-            onClick={() => nav(`/trip/${id}/money`)}
-            className="card py-4 flex flex-col items-center gap-1.5 row-press text-ink-soft"
-          >
-            <Wallet size={19} />
-            <span className="text-[12.5px] font-semibold">Add money</span>
-          </button>
-          <button
-            onClick={() => nav(`/trip/${id}/settle`)}
-            className="card py-4 flex flex-col items-center gap-1.5 row-press text-ink-soft"
-          >
-            <Scale size={19} />
-            <span className="text-[12.5px] font-semibold">Settle up</span>
-          </button>
-        </div>
       </Section>
     </>
   )

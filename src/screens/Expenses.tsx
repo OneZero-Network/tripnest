@@ -1,5 +1,5 @@
-import { Check, ChevronDown, Delete } from 'lucide-react'
-import { useEffect, useState } from 'react'
+import { Check, ChevronDown } from 'lucide-react'
+import { useEffect, useRef, useState } from 'react'
 import { toMinor } from '../core/money'
 import type { Expense, MoneySource, SplitMode } from '../core/types'
 import { db, uid } from '../db/db'
@@ -33,6 +33,7 @@ export function AddExpense({ t, open, onClose }: { t: TripView; open: boolean; o
   const [note, setNote] = useState('')
   const [advanced, setAdvanced] = useState(false)
   const [error, setError] = useState('')
+  const amountRef = useRef<HTMLInputElement>(null)
 
   // Reset to a clean form each time the sheet opens.
   useEffect(() => {
@@ -94,12 +95,6 @@ export function AddExpense({ t, open, onClose }: { t: TripView; open: boolean; o
   const toggle = (id: string) =>
     setParticipants((p) => (p.includes(id) ? p.filter((x) => x !== id) : [...p, id]))
 
-  const key = (k: string) => {
-    if (k === 'del') return setAmount((a) => a.slice(0, -1))
-    if (k === '.' && amount.includes('.')) return
-    setAmount((a) => (a === '0' ? k : a + k))
-  }
-
   return (
     <Sheet open={open} onClose={onClose} title="Add expense">
       {currencies.length > 1 && (
@@ -116,31 +111,38 @@ export function AddExpense({ t, open, onClose }: { t: TripView; open: boolean; o
         </div>
       )}
 
-      <div className="text-center py-5">
-        <p className="tnum text-[46px] leading-none font-semibold tracking-[-0.04em] break-all">
-          {amount ? `${currency === 'INR' ? '₹' : ''}${amount}` : <span className="text-ink-mute">0</span>}
-        </p>
-        {isForeign && <p className="text-[12.5px] text-ink-mute mt-2">Paid from the {currency} wallet</p>}
+      {/* A real input, not a custom numpad — the numpad alone was ~180px of
+          height, which is exactly why this sheet needed scrolling. The
+          device's own number keyboard does the same job in a fraction of
+          the space, and people already know how to use it. */}
+      <div className="flex items-center gap-1 py-3 mb-4 border-b-2 border-surface-line focus-within:border-ink transition-colors">
+        {currency === 'INR' && !isForeign && (
+          <span className="text-[30px] font-semibold text-ink-mute">₹</span>
+        )}
+        <input
+          ref={amountRef}
+          className="flex-1 min-w-0 tnum text-[30px] font-semibold tracking-[-0.02em] bg-transparent outline-none"
+          inputMode="decimal"
+          autoFocus
+          value={amount}
+          onChange={(e) => {
+            const v = e.target.value
+            if (/^\d*\.?\d*$/.test(v)) setAmount(v)
+          }}
+          placeholder="0"
+        />
+        {isForeign && <span className="text-[15px] font-semibold text-ink-mute">{currency}</span>}
       </div>
-
-      {/* A numeric pad beats a keyboard when you're holding luggage. */}
-      <div className="grid grid-cols-3 gap-2 mb-5">
-        {['1', '2', '3', '4', '5', '6', '7', '8', '9', '.', '0', 'del'].map((k) => (
-          <button
-            key={k}
-            onClick={() => key(k)}
-            className="py-3.5 rounded-2xl bg-surface-sunk text-[19px] font-semibold tnum
-                       active:bg-surface-line active:scale-[0.97] transition flex items-center justify-center"
-          >
-            {k === 'del' ? <Delete size={19} /> : k}
-          </button>
-        ))}
-      </div>
+      {isForeign && <p className="text-[12.5px] text-ink-mute -mt-3 mb-4">Paid from the {currency} wallet</p>}
 
       <p className="label mb-2 ml-1">Category</p>
-      <div className="flex gap-2 flex-wrap mb-5">
+      <div className="flex gap-2 mb-5 overflow-x-auto -mx-5 px-5 pb-1" style={{ scrollbarWidth: 'none' }}>
         {CATEGORIES.map((c) => (
-          <button key={c} onClick={() => setCategory(c)} className={category === c ? 'chip-on' : 'chip-off'}>
+          <button
+            key={c}
+            onClick={() => setCategory(c)}
+            className={`shrink-0 ${category === c ? 'chip-on' : 'chip-off'}`}
+          >
             {c}
           </button>
         ))}
@@ -157,11 +159,11 @@ export function AddExpense({ t, open, onClose }: { t: TripView; open: boolean; o
 
       {!isForeign && (
         <Field label="Who paid">
-          <div className="flex gap-2 flex-wrap">
+          <div className="flex gap-2 overflow-x-auto -mx-5 px-5 pb-1" style={{ scrollbarWidth: 'none' }}>
             {t.usesFund && (
               <button
                 onClick={() => setSource('fund')}
-                className={source === 'fund' ? 'chip-on' : 'chip-off'}
+                className={`shrink-0 ${source === 'fund' ? 'chip-on' : 'chip-off'}`}
               >
                 Trip fund
               </button>
@@ -173,7 +175,7 @@ export function AddExpense({ t, open, onClose }: { t: TripView; open: boolean; o
                   setSource('personal')
                   setPayerId(m.id)
                 }}
-                className={source === 'personal' && payerId === m.id ? 'chip-on' : 'chip-off'}
+                className={`shrink-0 ${source === 'personal' && payerId === m.id ? 'chip-on' : 'chip-off'}`}
               >
                 {m.name}
               </button>

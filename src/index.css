@@ -8,8 +8,6 @@
   color-scheme: light;
   --safe-top: env(safe-area-inset-top, 0px);
   --safe-bottom: env(safe-area-inset-bottom, 0px);
-  /** Overall UI scale. 0.75 = 25% smaller, per direct feedback that the app felt oversized. */
-  --app-scale: 0.75;
 }
 
 html,
@@ -23,16 +21,6 @@ body {
   -webkit-tap-highlight-color: transparent;
   overscroll-behavior-y: none;
   font-feature-settings: 'cv11', 'ss01';
-  /*
-   * Every size in this app is a hardcoded px value (text-[26px] etc.), not
-   * rem, so the usual "shrink the root font-size" trick does nothing —
-   * arbitrary Tailwind px values don't scale with it. `zoom` (Chromium/
-   * Android WebView only, which is all Capacitor targets) rescales the
-   * whole rendered page — text, spacing, icons, the fixed bottom nav — as
-   * one unit, which is what "everything feels too big, shrink it" needs.
-   * Tune APP_SCALE alone to adjust; nothing else should need to change.
-   */
-  zoom: var(--app-scale, 0.75);
 }
 
 /* Numbers must line up in columns. Tabular figures everywhere money appears. */

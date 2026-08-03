@@ -20,11 +20,16 @@ export function TopBar({
   title,
   subtitle,
   back,
+  backTo,
   right,
 }: {
   title: string
   subtitle?: string
   back?: boolean
+  /** Explicit destination for the back arrow. Defaults to router history
+   * (nav(-1)) when omitted — pass this when 'back' means 'up a level'
+   * rather than 'previous screen', e.g. a trip's Home tab going to Trips. */
+  backTo?: string
   right?: ReactNode
 }) {
   const nav = useNavigate()
@@ -32,7 +37,7 @@ export function TopBar({
     <header className="px-5 pt-2 pb-4 flex items-start gap-3">
       {back && (
         <button
-          onClick={() => nav(-1)}
+          onClick={() => (backTo ? nav(backTo) : nav(-1))}
           aria-label="Go back"
           className="mt-1 -ml-2 p-2 rounded-full active:bg-surface-line"
         >
