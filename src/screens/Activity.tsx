@@ -29,6 +29,18 @@ const ICONS: Record<ActivityEvent['kind'], typeof Receipt> = {
 }
 
 /** Table + soft-delete key per kind, so one row can undo regardless of source. */
+/**
+ * The frozen activity registry emits route names from the pre-redesign
+ * navigation ('expenses'). Rather than edit a frozen core file for a naming
+ * change, the mapping to current paths lives here in the UI layer, which is
+ * where navigation belongs anyway.
+ */
+const ROUTE_PATH: Record<string, string> = {
+  expenses: 'activity',
+  money: 'money',
+  settle: 'settle',
+}
+
 const DELETE_TABLE: Partial<Record<ActivityEvent['kind'], 'expenses' | 'contributions' | 'purchases' | 'reimbursements' | 'settlementRecords'>> = {
   expense: 'expenses',
   refund: 'expenses',
@@ -98,8 +110,13 @@ export default function Activity({ t }: { t: TripView }) {
       {groups.length === 0 ? (
         <Section>
           <Empty
+            icon={<Receipt size={20} />}
             title={q ? 'Nothing matches' : 'No activity yet'}
-            hint={q ? 'Try a different word.' : 'Every expense, contribution, purchase, and settlement will show up here as it happens.'}
+            hint={
+              q
+                ? 'Try a different word — this searches titles, categories, and notes.'
+                : 'Every expense, contribution, currency purchase, and settlement shows up here as it happens. Tap + to record your first one.'
+            }
           />
         </Section>
       ) : (
@@ -112,7 +129,7 @@ export default function Activity({ t }: { t: TripView }) {
                 return (
                   <li key={`${e.kind}-${e.id}`} className="flex items-center gap-3 px-5 py-4">
                     <button
-                      onClick={() => nav(`/trip/${id}/${e.route}`)}
+                      onClick={() => nav(`/trip/${id}/${ROUTE_PATH[e.route] ?? 'activity'}`)}
                       className="flex items-center gap-3 flex-1 min-w-0 text-left row-press"
                     >
                       <span className="w-9 h-9 rounded-full bg-surface-sunk flex items-center justify-center shrink-0 text-ink-soft">
@@ -120,7 +137,13 @@ export default function Activity({ t }: { t: TripView }) {
                       </span>
                       <span className="min-w-0">
                         <p className="font-medium text-[15px] truncate">{e.title}</p>
-                        <p className="text-[12px] text-ink-mute mt-0.5 truncate">{e.detail}</p>
+                        <p
+                          className={`text-[12px] mt-0.5 truncate ${
+                            e.kind === 'refund' && e.linkedTitle ? 'text-brand font-medium' : 'text-ink-mute'
+                          }`}
+                        >
+                          {e.detail}
+                        </p>
                       </span>
                     </button>
                     <span

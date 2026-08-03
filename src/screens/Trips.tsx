@@ -1,48 +1,17 @@
 import { Download, MapPin, Plus, Upload } from 'lucide-react'
 import { useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { db, downloadJSON, exportEverything, importBundle, uid } from '../db/db'
-import { ENGINE_VERSION } from '../core/engine'
+import { downloadJSON, exportEverything, importBundle } from '../db/db'
 import { useTrip, useTrips } from '../db/useTrip'
 import { formatCompact } from '../core/money'
-import { Empty, Field, Screen, Section, Sheet, TopBar } from '../ui/kit'
-
-const CURRENCIES = ['INR', 'USD', 'EUR', 'GBP', 'AED', 'SAR', 'THB', 'SGD', 'MYR', 'JPY', 'AUD', 'LKR']
+import { Empty, Screen, Section, TopBar } from '../ui/kit'
+import { TripWizard } from './TripWizard'
 
 export default function Trips() {
   const trips = useTrips()
   const nav = useNavigate()
-  const [open, setOpen] = useState(false)
+  const [wizardOpen, setWizardOpen] = useState(false)
   const fileRef = useRef<HTMLInputElement>(null)
-
-  const [name, setName] = useState('')
-  const [destination, setDestination] = useState('')
-  const [startDate, setStartDate] = useState(() => new Date().toISOString().slice(0, 10))
-  const [baseCurrency, setBaseCurrency] = useState('INR')
-  const [operator, setOperator] = useState('')
-
-  async function create() {
-    const id = uid()
-    await db.trips.add({
-      id,
-      name: name.trim() || destination.trim() || 'New trip',
-      destination: destination.trim(),
-      baseCurrency,
-      startDate,
-      createdAt: Date.now(),
-      engineVersion: ENGINE_VERSION,
-    })
-    await db.members.add({
-      id: uid(),
-      tripId: id,
-      name: operator.trim() || 'Me',
-      isOperator: true,
-      createdAt: Date.now(),
-    })
-    setOpen(false)
-    setName(''); setDestination(''); setOperator('')
-    nav(`/trip/${id}`)
-  }
 
   async function onImport(file: File) {
     try {
@@ -88,13 +57,11 @@ export default function Trips() {
       <Section>
         {!trips ? null : trips.length === 0 ? (
           <Empty
+            icon={<MapPin size={20} />}
             title="No trips yet"
-            hint="Create a trip before you leave. Add expenses as they happen, settle up when you get back."
-            action={
-              <button className="btn-primary" onClick={() => setOpen(true)}>
-                Create your first trip
-              </button>
-            }
+            hint="Create a trip before you leave, add expenses as they happen, and settle up when you get back. Everything stays on this phone — no account needed."
+            cta="Create your first trip"
+            onCta={() => setWizardOpen(true)}
           />
         ) : (
           <ul className="space-y-3">
@@ -128,7 +95,7 @@ export default function Trips() {
       </Section>
 
       <button
-        onClick={() => setOpen(true)}
+        onClick={() => setWizardOpen(true)}
         aria-label="Create a trip"
         className="fixed right-5 z-40 bg-ink text-white rounded-full w-14 h-14
                    flex items-center justify-center shadow-lift active:scale-95 transition"
@@ -137,36 +104,14 @@ export default function Trips() {
         <Plus size={26} />
       </button>
 
-      <Sheet open={open} onClose={() => setOpen(false)} title="New trip">
-        <Field label="Trip name">
-          <input className="field" value={name} onChange={(e) => setName(e.target.value)} placeholder="Riyadh, January" />
-        </Field>
-        <Field label="Destination">
-          <input className="field" value={destination} onChange={(e) => setDestination(e.target.value)} placeholder="Riyadh" />
-        </Field>
-        <Field label="Start date">
-          <input type="date" className="field tnum" value={startDate} onChange={(e) => setStartDate(e.target.value)} />
-        </Field>
-        <Field label="Settle in" hint="The currency you'll do the final maths in.">
-          <div className="flex gap-2 flex-wrap">
-            {CURRENCIES.map((c) => (
-              <button
-                key={c}
-                onClick={() => setBaseCurrency(c)}
-                className={baseCurrency === c ? 'chip-on tnum' : 'chip-off tnum'}
-              >
-                {c}
-              </button>
-            ))}
-          </div>
-        </Field>
-        <Field label="Your name" hint="You keep the accounts. Others get a shareable summary.">
-          <input className="field" value={operator} onChange={(e) => setOperator(e.target.value)} placeholder="Ayaz" />
-        </Field>
-        <button className="btn-primary w-full mt-2" onClick={create}>
-          Create trip
-        </button>
-      </Sheet>
+      <TripWizard
+        open={wizardOpen}
+        onClose={() => setWizardOpen(false)}
+        onCreated={(tripId) => {
+          setWizardOpen(false)
+          nav(`/trip/${tripId}`)
+        }}
+      />
     </Screen>
   )
 }

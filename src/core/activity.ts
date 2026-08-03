@@ -51,6 +51,10 @@ export interface ActivityEvent {
   title: string
   detail: string
   route: ActivityRoute
+  /** For refunds: the id/title of the expense being refunded, so the UI can
+   * visually connect the two instead of showing an unexplained credit. */
+  linkedId?: ID
+  linkedTitle?: string
 }
 
 type Projector = (data: TripData, code: string, name: (id: ID | 'FUND') => string) => ActivityEvent[]
@@ -73,12 +77,18 @@ const projectPurchases: Projector = (data, code, name) =>
 
 const projectExpenses: Projector = (data, code) => {
   const wallets = computeWallets(data)
+  const byId = new Map(data.expenses.map((x) => [x.id, x]))
   return live(data.expenses).map((e) => {
     const value = expenseBaseValue(e, data.trip, wallets)
+    const original = e.isRefund && e.refundOf ? byId.get(e.refundOf) : undefined
     return {
       kind: e.isRefund ? 'refund' : 'expense', id: e.id, at: e.at, amountMinor: -value, route: 'expenses',
       title: e.title,
-      detail: `${e.category} · ${formatMoney(Math.abs(value), code)}${e.isRefund ? ' refunded' : ''}`,
+      detail: original
+        ? `Refund for ${original.title} · ${formatMoney(Math.abs(value), code)}`
+        : `${e.category} · ${formatMoney(Math.abs(value), code)}${e.isRefund ? ' refunded' : ''}`,
+      linkedId: original?.id,
+      linkedTitle: original?.title,
     }
   })
 }

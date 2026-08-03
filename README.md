@@ -4,7 +4,8 @@ An offline-first trip workspace. The trip is the object; expenses, the shared fu
 foreign-cash wallets, and settlement all live inside it.
 
 Local-first: React + Vite + IndexedDB, wrapped by Capacitor into an Android APK.
-No login, no server, no network calls at runtime.
+Works completely offline. Optional cloud features may be added later — your
+data always stays on your device unless you choose to export or share it.
 
 ---
 

@@ -71,12 +71,92 @@ export function Section({
   )
 }
 
-export function Empty({ title, hint, action }: { title: string; hint: string; action?: ReactNode }) {
+/**
+ * Guided empty state. An empty state's job is not to report emptiness — it's
+ * to explain when the feature matters, why you'd use it, and whether it's
+ * optional, then offer the one action that resolves it.
+ */
+export function Empty({
+  icon, title, hint, optional, cta, onCta, tone = 'brand',
+}: {
+  icon?: ReactNode
+  title: string
+  hint: string
+  optional?: boolean
+  cta?: string
+  onCta?: () => void
+  tone?: 'brand' | 'accent'
+}) {
   return (
-    <div className="card p-7 text-center">
-      <p className="font-semibold text-[16px]">{title}</p>
-      <p className="text-[14px] text-ink-mute mt-1.5 leading-relaxed">{hint}</p>
-      {action && <div className="mt-5">{action}</div>}
+    <div className="card p-6">
+      <div className="flex gap-4">
+        {icon && (
+          <span
+            className={`w-11 h-11 rounded-2xl flex items-center justify-center shrink-0 ${
+              tone === 'accent' ? 'bg-accent-wash text-accent' : 'bg-brand-wash text-brand-deep'
+            }`}
+          >
+            {icon}
+          </span>
+        )}
+        <div className="min-w-0 flex-1">
+          <p className="font-semibold text-[16px] tracking-[-0.01em]">{title}</p>
+          <p className="text-[13.5px] text-ink-mute mt-1.5 leading-relaxed">{hint}</p>
+          {optional && (
+            <p className="text-[12px] text-ink-mute mt-2 italic">This is optional — many trips never need it.</p>
+          )}
+          {cta && (
+            <button
+              onClick={onCta}
+              className={`mt-4 rounded-xl px-4 py-2.5 text-[14px] font-semibold text-white active:scale-[0.98] transition ${
+                tone === 'accent' ? 'bg-accent' : 'bg-brand-deep'
+              }`}
+            >
+              {cta}
+            </button>
+          )}
+        </div>
+      </div>
+    </div>
+  )
+}
+
+const AVATAR_TONES = [
+  'bg-[#DCFCE7] text-[#047857]', 'bg-[#DBEAFE] text-[#1D4ED8]',
+  'bg-[#FEF3C7] text-[#B45309]', 'bg-[#FCE7F3] text-[#BE185D]',
+  'bg-[#EDE9FE] text-[#6D28D9]', 'bg-[#CCFBF1] text-[#0F766E]',
+]
+
+/** Deterministic initials avatar — people should be recognisable at a glance. */
+export function Avatar({ name, size = 40 }: { name: string; size?: number }) {
+  const initials = name.trim().split(/\s+/).slice(0, 2).map((w) => w[0]?.toUpperCase() ?? '').join('') || '?'
+  let h = 0
+  for (let i = 0; i < name.length; i++) h = (h * 31 + name.charCodeAt(i)) >>> 0
+  const tone = AVATAR_TONES[h % AVATAR_TONES.length]
+  return (
+    <span
+      className={`rounded-full flex items-center justify-center font-semibold shrink-0 ${tone}`}
+      style={{ width: size, height: size, fontSize: size * 0.36 }}
+    >
+      {initials}
+    </span>
+  )
+}
+
+/** A labelled figure in a reconciliation list. Supporting detail, not a headline. */
+export function Stat({
+  label, value, tone, strong,
+}: { label: string; value: string; tone?: 'pos' | 'neg' | 'mute'; strong?: boolean }) {
+  return (
+    <div className="flex justify-between items-baseline py-2">
+      <span className="text-[13.5px] text-ink-soft">{label}</span>
+      <span
+        className={`tnum text-[14.5px] ${strong ? 'font-semibold' : 'font-medium'} ${
+          tone === 'pos' ? 'text-signal-pos' : tone === 'neg' ? 'text-signal-neg' : tone === 'mute' ? 'text-ink-mute' : ''
+        }`}
+      >
+        {value}
+      </span>
     </div>
   )
 }
