@@ -1,4 +1,4 @@
-import { Check, UserPlus, Users } from 'lucide-react'
+import { Check, Plus, UserPlus, Users } from 'lucide-react'
 import { useState } from 'react'
 import { expenseBaseValue } from '../core/engine'
 import { formatMoney } from '../core/money'
@@ -6,6 +6,7 @@ import { validateMemberName } from '../core/names'
 import { db, uid } from '../db/db'
 import type { TripView } from '../db/useTrip'
 import { Avatar, Empty, Field, Section, Sheet, Stat } from '../ui/kit'
+import { AddContribution } from './Money'
 
 /**
  * People answers one question: **who is travelling, and where does each of
@@ -20,6 +21,7 @@ export default function People({ t }: { t: TripView }) {
   const code = t.trip.baseCurrency
   const [adding, setAdding] = useState(false)
   const [openId, setOpenId] = useState<string | null>(null)
+  const [contribFor, setContribFor] = useState<string | null>(null)
 
   const balanceOf = (id: string) => t.settlement.balances.find((b) => b.memberId === id)
   const settledUp = t.settlement.transfers.length === 0
@@ -68,10 +70,10 @@ export default function People({ t }: { t: TripView }) {
               const b = balanceOf(m.id)
               const bal = b?.balanceMinor ?? 0
               return (
-                <li key={m.id}>
+                <li key={m.id} className="flex items-center">
                   <button
                     onClick={() => setOpenId(m.id)}
-                    className="w-full flex items-center gap-3.5 px-5 py-4 text-left row-press"
+                    className="flex-1 flex items-center gap-3.5 px-5 py-4 text-left row-press min-w-0"
                   >
                     <Avatar name={m.name} />
                     <div className="flex-1 min-w-0">
@@ -88,6 +90,15 @@ export default function People({ t }: { t: TripView }) {
                       {bal === 0 ? '—' : formatMoney(bal, code, { sign: true })}
                     </span>
                   </button>
+                  {t.usesFund && (
+                    <button
+                      onClick={() => setContribFor(m.id)}
+                      aria-label={`Add money for ${m.name}`}
+                      className="shrink-0 w-9 h-9 mr-3 rounded-full bg-surface-sunk flex items-center justify-center active:scale-95 transition text-ink-soft"
+                    >
+                      <Plus size={16} />
+                    </button>
+                  )}
                 </li>
               )
             })}
@@ -157,7 +168,7 @@ export default function People({ t }: { t: TripView }) {
                     : 'Balance'}
               </p>
               <p
-                className={`tnum text-[32px] font-semibold tracking-[-0.025em] mt-1.5 ${
+                className={`tnum text-[27px] font-semibold tracking-[-0.015em] mt-1.5 ${
                   openBalance.balanceMinor < 0
                     ? 'text-signal-neg'
                     : openBalance.balanceMinor > 0
@@ -210,6 +221,12 @@ export default function People({ t }: { t: TripView }) {
       </Sheet>
 
       <AddMember t={t} open={adding} onClose={() => setAdding(false)} />
+      <AddContribution
+        t={t}
+        open={!!contribFor}
+        onClose={() => setContribFor(null)}
+        presetMemberId={contribFor ?? undefined}
+      />
     </>
   )
 }

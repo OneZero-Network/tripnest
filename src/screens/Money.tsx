@@ -1,5 +1,5 @@
 import { Coins, HandCoins, Plus, Trash2, Wallet } from 'lucide-react'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { formatMoney, symbolFor, toMinor } from '../core/money'
 import { db, softDelete, uid } from '../db/db'
 import type { TripView } from '../db/useTrip'
@@ -66,7 +66,7 @@ export default function Money({ t }: { t: TripView }) {
               <p className="text-[12px] font-semibold uppercase tracking-[0.09em]">Trip fund</p>
             </div>
             <p className="text-[12.5px] text-white/70 mt-0.5">Shared cash everyone chipped in</p>
-            <p className="tnum text-[40px] leading-none font-semibold tracking-[-0.035em] mt-2.5">
+            <p className="tnum text-[33px] leading-none font-semibold tracking-[-0.02em] mt-2.5">
               {formatMoney(t.fund.remainingMinor, code)}
             </p>
             <p className="tnum text-[13px] text-white/75 mt-2">
@@ -134,7 +134,7 @@ export default function Money({ t }: { t: TripView }) {
                   <Coins size={14} />
                   <p className="text-[12px] font-semibold uppercase tracking-[0.09em]">{w.code} wallet</p>
                 </div>
-                <p className="tnum text-[32px] leading-none font-semibold tracking-[-0.03em] mt-2.5">
+                <p className="tnum text-[27px] leading-none font-semibold tracking-[-0.02em] mt-2.5">
                   {formatMoney(w.remainingForeignMinor, w.code)}
                 </p>
                 <p className="tnum text-[13px] text-ink-mute mt-2">
@@ -213,11 +213,17 @@ export default function Money({ t }: { t: TripView }) {
   )
 }
 
-function AddContribution({ t, open, onClose }: { t: TripView; open: boolean; onClose: () => void }) {
+export function AddContribution({
+  t, open, onClose, presetMemberId,
+}: { t: TripView; open: boolean; onClose: () => void; presetMemberId?: string }) {
   const code = t.trip.baseCurrency
-  const [memberId, setMemberId] = useState(t.members[0]?.id ?? '')
+  const [memberId, setMemberId] = useState(presetMemberId ?? t.members[0]?.id ?? '')
   const [amount, setAmount] = useState('')
   const [error, setError] = useState('')
+
+  useEffect(() => {
+    if (open) setMemberId(presetMemberId ?? t.members[0]?.id ?? '')
+  }, [open, presetMemberId])
 
   return (
     <Sheet open={open} onClose={onClose} title="Add money to the fund">

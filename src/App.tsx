@@ -1,29 +1,7 @@
 import { Activity as ActivityIcon, Home as HomeIcon, Plus, Scale, Users, Wallet } from 'lucide-react'
-import { useState } from 'react'
-import { HashRouter, NavLink, Navigate, Route, Routes, useParams } from 'react-router-dom'
+import { useRef, useState } from 'react'
+import { HashRouter, NavLink, Navigate, Route, Routes, useNavigate, useParams } from 'react-router-dom'
 import { AndroidBack } from './AndroidBack'
-
-/**
- * Whole-app visual scale.
- *
- * Round 1 used CSS `zoom` at 0.75 (25% smaller). Two problems came back:
- * it felt too small, and it rendered a different size on different phones.
- * Both point at the same root cause — `zoom` is a non-standard Blink
- * property, and different OEM WebView forks (Samsung Internet's engine,
- * MIUI's, stock AOSP) don't all implement it the same way. It was never a
- * reliable lever.
- *
- * `transform: scale()` is different: it's plain CSS, guaranteed by spec to
- * render identically everywhere Chromium runs, and — critically — a
- * transformed ancestor becomes the containing block for any `position:
- * fixed` descendant (also spec, not a browser quirk). That's what makes the
- * bottom nav bar scale and reposition correctly along with everything else,
- * the same behavior `zoom` gave us but through a mechanism every device
- * actually agrees on.
- *
- * Tune only this constant.
- */
-const APP_SCALE = 0.9
 import Trips from './screens/Trips'
 import Home from './screens/Home'
 import Activity from './screens/Activity'
@@ -35,6 +13,51 @@ import { useTrip } from './db/useTrip'
 import { Screen, TopBar } from './ui/kit'
 
 type Tab = 'home' | 'activity' | 'people' | 'money' | 'settle'
+
+/** Bottom-nav order, for swiping. Money isn't a swipe stop — it isn't a tab
+ * in the bar either, reached from Home instead (see comment below). */
+const SWIPE_ORDER: Tab[] = ['home', 'activity', 'people', 'settle']
+
+/**
+ * Swipe left/right between tabs, the way Instagram/WhatsApp let you swipe
+ * between top tabs instead of only tapping them.
+ *
+ * Deliberately conservative: a real horizontal swipe (60px+, more
+ * horizontal movement than vertical) is required before it fires, so it
+ * doesn't fight with vertical scrolling or with horizontal-scrolling chip
+ * rows elsewhere on the same screen (category chips, the member avatar
+ * strip) — those still work exactly as they did.
+ */
+function useSwipeTabs(tab: Tab, id: string | undefined) {
+  const nav = useNavigate()
+  const start = useRef<{ x: number; y: number } | null>(null)
+
+  function path(t: Tab) {
+    return t === 'home' ? `/trip/${id}` : `/trip/${id}/${t}`
+  }
+
+  function onTouchStart(e: React.TouchEvent) {
+    const t = e.touches[0]
+    start.current = { x: t.clientX, y: t.clientY }
+  }
+
+  function onTouchEnd(e: React.TouchEvent) {
+    if (!start.current) return
+    const t = e.changedTouches[0]
+    const dx = t.clientX - start.current.x
+    const dy = t.clientY - start.current.y
+    start.current = null
+
+    if (Math.abs(dx) < 60 || Math.abs(dx) < Math.abs(dy) * 1.5) return
+    const i = SWIPE_ORDER.indexOf(tab)
+    if (i === -1) return
+    const next = dx < 0 ? i + 1 : i - 1
+    if (next < 0 || next >= SWIPE_ORDER.length) return
+    nav(path(SWIPE_ORDER[next]))
+  }
+
+  return { onTouchStart, onTouchEnd }
+}
 
 /**
  * Navigation named after the journey, not the schema.
@@ -49,6 +72,7 @@ function TripWorkspace({ tab }: { tab: Tab }) {
   const { id } = useParams()
   const t = useTrip(id)
   const [adding, setAdding] = useState(false)
+  const swipe = useSwipeTabs(tab, id)
 
   if (t === undefined) return <Screen><TopBar title="Loading" back /></Screen>
   if (t === null) return <Screen><TopBar title="Trip not found" back /></Screen>
@@ -65,11 +89,13 @@ function TripWorkspace({ tab }: { tab: Tab }) {
     <Screen>
       <TopBar title={heads[tab].title} subtitle={heads[tab].subtitle} back backTo={tab === 'home' ? '/' : undefined} />
 
-      {tab === 'home' && <Home t={t} onAdd={() => setAdding(true)} />}
-      {tab === 'activity' && <Activity t={t} />}
-      {tab === 'people' && <People t={t} />}
-      {tab === 'money' && <Money t={t} />}
-      {tab === 'settle' && <Settle t={t} />}
+      <div onTouchStart={swipe.onTouchStart} onTouchEnd={swipe.onTouchEnd}>
+        {tab === 'home' && <Home t={t} onAdd={() => setAdding(true)} />}
+        {tab === 'activity' && <Activity t={t} />}
+        {tab === 'people' && <People t={t} />}
+        {tab === 'money' && <Money t={t} />}
+        {tab === 'settle' && <Settle t={t} />}
+      </div>
 
       <AddExpense t={t} open={adding} onClose={() => setAdding(false)} />
 
@@ -119,31 +145,16 @@ export default function App() {
   return (
     <HashRouter>
       <AndroidBack />
-      {/* Outer: pinned to the real viewport, and the ONLY thing that scrolls.
-          Inner: the actual app, rendered at 1/APP_SCALE size then visually
-          scaled down — so its layout math is unaffected, only its rendered
-          pixels are smaller. */}
-      <div style={{ position: 'fixed', inset: 0, overflowY: 'auto', overscrollBehaviorY: 'none' }}>
-        <div
-          style={{
-            transform: `scale(${APP_SCALE})`,
-            transformOrigin: 'top left',
-            width: `${100 / APP_SCALE}%`,
-            minHeight: `${100 / APP_SCALE}%`,
-          }}
-        >
-          <div className="max-w-lg mx-auto min-h-full bg-surface-sunk">
-            <Routes>
-              <Route path="/" element={<Trips />} />
-              <Route path="/trip/:id" element={<TripWorkspace tab="home" />} />
-              <Route path="/trip/:id/activity" element={<TripWorkspace tab="activity" />} />
-              <Route path="/trip/:id/people" element={<TripWorkspace tab="people" />} />
-              <Route path="/trip/:id/money" element={<TripWorkspace tab="money" />} />
-              <Route path="/trip/:id/settle" element={<TripWorkspace tab="settle" />} />
-              <Route path="*" element={<Navigate to="/" replace />} />
-            </Routes>
-          </div>
-        </div>
+      <div className="max-w-lg mx-auto min-h-full bg-surface-sunk">
+        <Routes>
+          <Route path="/" element={<Trips />} />
+          <Route path="/trip/:id" element={<TripWorkspace tab="home" />} />
+          <Route path="/trip/:id/activity" element={<TripWorkspace tab="activity" />} />
+          <Route path="/trip/:id/people" element={<TripWorkspace tab="people" />} />
+          <Route path="/trip/:id/money" element={<TripWorkspace tab="money" />} />
+          <Route path="/trip/:id/settle" element={<TripWorkspace tab="settle" />} />
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </Routes>
       </div>
     </HashRouter>
   )

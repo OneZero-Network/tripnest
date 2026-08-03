@@ -60,7 +60,7 @@ export default function Settle({ t }: { t: TripView }) {
           >
             {settledUp ? 'All settled' : 'Still to settle'}
           </p>
-          <p className="tnum text-[38px] leading-none font-semibold tracking-[-0.03em] mt-2.5">
+          <p className="tnum text-[32px] leading-none font-semibold tracking-[-0.02em] mt-2.5">
             {settledUp
               ? 'Nobody owes'
               : formatMoney(transfers.reduce((s, tr) => s + tr.amountMinor, 0), code)}

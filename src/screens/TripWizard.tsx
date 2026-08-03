@@ -32,7 +32,6 @@ export function TripWizard({ open, onClose, onCreated }: {
 
   // Step 1 — the trip itself
   const [name, setName] = useState('')
-  const [destination, setDestination] = useState('')
   const [startDate, setStartDate] = useState(() => new Date().toISOString().slice(0, 10))
   const [endDate, setEndDate] = useState('')
   const [baseCurrency, setBaseCurrency] = useState('INR')
@@ -55,7 +54,7 @@ export function TripWizard({ open, onClose, onCreated }: {
 
   function reset() {
     setStep(0)
-    setName(''); setDestination(''); setEndDate('')
+    setName(''); setEndDate('')
     setOperatorName(''); setFriends([]); setFriendInput('')
     setStyles(new Set(['individual']))
     setFundAmounts({}); setForexAmount(''); setForexCost('')
@@ -115,8 +114,8 @@ export function TripWizard({ open, onClose, onCreated }: {
     const now = Date.now()
     await db.trips.add({
       id: tripId,
-      name: name.trim() || destination.trim() || 'New trip',
-      destination: destination.trim(),
+      name: name.trim() || 'New trip',
+      destination: '',
       baseCurrency,
       startDate,
       endDate: endDate || undefined,
@@ -185,11 +184,8 @@ export function TripWizard({ open, onClose, onCreated }: {
 
       {step === 0 && (
         <>
-          <Field label="Trip name">
+          <Field label="Trip name" hint="e.g. 'Riyadh, January' — where and roughly when.">
             <input className="field" autoFocus value={name} onChange={(e) => setName(e.target.value)} placeholder="Riyadh, January" />
-          </Field>
-          <Field label="Destination">
-            <input className="field" value={destination} onChange={(e) => setDestination(e.target.value)} placeholder="Riyadh" />
           </Field>
           <div className="flex gap-3">
             <Field label="Start date">
@@ -200,13 +196,15 @@ export function TripWizard({ open, onClose, onCreated }: {
             </Field>
           </div>
           <Field label="Settle in" hint="The currency you'll do the final maths in.">
-            <div className="flex gap-2 flex-wrap">
+            <select
+              className="field tnum"
+              value={baseCurrency}
+              onChange={(e) => setBaseCurrency(e.target.value)}
+            >
               {CURRENCIES.map((c) => (
-                <button key={c} onClick={() => setBaseCurrency(c)} className={baseCurrency === c ? 'chip-on tnum' : 'chip-off tnum'}>
-                  {c}
-                </button>
+                <option key={c} value={c}>{c}</option>
               ))}
-            </div>
+            </select>
           </Field>
           <button className="btn-primary w-full mb-2" onClick={() => setStep(1)}>
             Next

@@ -66,7 +66,7 @@ export default function Home({ t, onAdd }: { t: TripView; onAdd: () => void }) {
           <p className="text-[12px] font-semibold uppercase tracking-[0.09em] text-white/70">
             Total spent
           </p>
-          <p className="tnum text-[44px] leading-none font-semibold tracking-[-0.035em] mt-2.5">
+          <p className="tnum text-[36px] leading-none font-semibold tracking-[-0.02em] mt-2.5">
             {formatMoney(t.summary.totalSpentBaseMinor, code)}
           </p>
 
@@ -79,7 +79,7 @@ export default function Home({ t, onAdd }: { t: TripView; onAdd: () => void }) {
                 <div>
                   <p className="text-[12px] text-white/75 font-medium">Trip fund left</p>
                   <p className="text-[10.5px] text-white/55 -mt-0.5">Shared cash, not personal spend</p>
-                  <p className="tnum text-[26px] font-semibold tracking-[-0.02em] mt-0.5">
+                  <p className="tnum text-[21px] font-semibold tracking-[-0.01em] mt-0.5">
                     {formatMoney(t.fund.remainingMinor, code)}
                   </p>
                 </div>

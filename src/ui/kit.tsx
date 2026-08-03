@@ -45,7 +45,7 @@ export function TopBar({
         </button>
       )}
       <div className="flex-1 min-w-0">
-        <h1 className="text-[26px] leading-tight font-semibold tracking-[-0.02em] truncate">
+        <h1 className="text-[21px] leading-tight font-semibold tracking-[-0.01em] truncate">
           {title}
         </h1>
         {subtitle && <p className="text-[14px] text-ink-mute mt-0.5 truncate">{subtitle}</p>}
