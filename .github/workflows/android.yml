@@ -1,0 +1,90 @@
+name: Build Android APK
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  apk:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      # The financial engine is the expensive thing to get wrong.
+      # If these fail, no APK is produced.
+      - name: Run engine tests
+        run: npm test
+
+      - name: Build web bundle
+        run: npm run build
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+
+      - uses: android-actions/setup-android@v3
+
+      - name: Generate the Android project
+        # android/ is intentionally NOT committed. Capacitor regenerates it
+        # from capacitor.config.ts, so the repo stays free of 200+ template files.
+        run: |
+          if [ ! -d android ]; then npx cap add android; fi
+          npx cap sync android
+
+      - name: Assemble debug APK
+        run: |
+          cd android
+          chmod +x ./gradlew
+          ./gradlew assembleDebug --no-daemon --stacktrace
+
+      - name: Assemble release APK
+        if: ${{ secrets.ANDROID_KEYSTORE_BASE64 != '' }}
+        env:
+          KEYSTORE_B64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: |
+          cd android
+          echo "$KEYSTORE_B64" | base64 -d > release.keystore
+          ./gradlew assembleRelease --no-daemon \
+            -Pandroid.injected.signing.store.file="$PWD/release.keystore" \
+            -Pandroid.injected.signing.store.password="$KEYSTORE_PASSWORD" \
+            -Pandroid.injected.signing.key.alias="$KEY_ALIAS" \
+            -Pandroid.injected.signing.key.password="$KEY_PASSWORD"
+          rm -f release.keystore
+
+      - name: Rename APKs
+        run: |
+          mkdir -p out
+          find android -name '*.apk' -exec sh -c \
+            'cp "$1" "out/tripnest-$(basename "$(dirname "$1")")-${GITHUB_SHA:0:7}.apk"' _ {} \;
+          ls -lh out
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: tripnest-apk
+          path: out/*.apk
+          if-no-files-found: error
+          retention-days: 30
+
+      # Tag a commit (e.g. `git tag v0.1.0 && git push --tags`) to get a
+      # permanent download link instead of a 30-day artifact.
+      - name: Attach APKs to release
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: out/*.apk
