@@ -10,6 +10,13 @@ jobs:
   apk:
     runs-on: ubuntu-latest
     timeout-minutes: 30
+    # `secrets` cannot be referenced directly inside an `if:` condition —
+    # GitHub Actions rejects that at parse time ("Unrecognized named-value:
+    # 'secrets'"), specifically so a workflow can't be used to probe which
+    # secrets are set. Resolving it into env first and branching on env.*
+    # below is the supported way to make a step conditional on a secret.
+    env:
+      HAS_KEYSTORE: ${{ secrets.ANDROID_KEYSTORE_BASE64 != '' }}
 
     steps:
       - uses: actions/checkout@v4
@@ -51,7 +58,7 @@ jobs:
           ./gradlew assembleDebug --no-daemon --stacktrace
 
       - name: Assemble release APK
-        if: ${{ secrets.ANDROID_KEYSTORE_BASE64 != '' }}
+        if: ${{ env.HAS_KEYSTORE == 'true' }}
         env:
           KEYSTORE_B64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
           KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
