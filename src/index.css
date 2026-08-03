@@ -1,0 +1,83 @@
+@import '@fontsource-variable/inter';
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: light;
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  @apply bg-surface-sunk text-ink font-sans antialiased;
+  -webkit-tap-highlight-color: transparent;
+  overscroll-behavior-y: none;
+  font-feature-settings: 'cv11', 'ss01';
+}
+
+/* Numbers must line up in columns. Tabular figures everywhere money appears. */
+.tnum {
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.01em;
+}
+
+@layer components {
+  .card {
+    @apply bg-surface rounded-xl2 shadow-card border border-surface-line/70;
+  }
+  .row-press {
+    @apply active:scale-[0.985] transition-transform duration-100;
+  }
+  .label {
+    @apply text-[11px] font-semibold uppercase tracking-[0.08em] text-ink-mute;
+  }
+  .field {
+    @apply w-full bg-surface-sunk rounded-2xl px-4 py-3.5 text-[16px] outline-none
+           border border-transparent focus:border-ink/20 focus:bg-surface transition;
+  }
+  .btn {
+    @apply rounded-2xl px-5 py-3.5 font-semibold text-[15px] transition
+           active:scale-[0.98] disabled:opacity-40 disabled:active:scale-100;
+  }
+  .btn-primary {
+    @apply btn bg-ink text-white;
+  }
+  .btn-quiet {
+    @apply btn bg-surface-sunk text-ink-soft;
+  }
+  .chip {
+    @apply px-3 py-2 rounded-xl text-[13px] font-medium border transition active:scale-[0.97];
+  }
+  .chip-off {
+    @apply chip bg-surface border-surface-line text-ink-soft;
+  }
+  .chip-on {
+    @apply chip bg-ink border-ink text-white;
+  }
+}
+
+*:focus-visible {
+  outline: 2px solid #0e1116;
+  outline-offset: 2px;
+  border-radius: 12px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+::-webkit-scrollbar {
+  width: 0;
+  height: 0;
+}

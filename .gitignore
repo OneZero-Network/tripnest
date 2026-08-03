@@ -1,0 +1,10 @@
+node_modules/
+dist/
+out/
+android/
+ios/
+.DS_Store
+*.local
+.env
+*.keystore
+.vite/
