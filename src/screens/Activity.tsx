@@ -136,7 +136,14 @@ export default function Activity({ t }: { t: TripView }) {
                         <Icon size={16} />
                       </span>
                       <span className="min-w-0">
-                        <p className="font-medium text-[15px] truncate">{e.title}</p>
+                        <p className="font-medium text-[15px] truncate flex items-center gap-1.5">
+                          <span className="truncate">{e.title}</span>
+                          {e.adjusted && (
+                            <span className="shrink-0 text-[9.5px] font-semibold uppercase tracking-[0.06em] text-ink-mute bg-surface-sunk px-1.5 py-0.5 rounded-full">
+                              Adjusted
+                            </span>
+                          )}
+                        </p>
                         <p
                           className={`text-[12px] mt-0.5 truncate ${
                             e.kind === 'refund' && e.linkedTitle ? 'text-brand font-medium' : 'text-ink-mute'

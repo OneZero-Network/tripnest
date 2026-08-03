@@ -110,6 +110,14 @@ export interface Expense {
   isRefund?: boolean
   /** Optional link to the expense this refund corresponds to. */
   refundOf?: ID
+  /**
+   * Set when this expense was saved with "Advanced options" open — a
+   * non-default split, an explicit note, or similar. Purely informational:
+   * Activity uses it to flag entries whose numbers came from an adjustment
+   * rather than the equal-split default, so "why is this ₹241 and not ₹248
+   * like everyone else" is answerable at a glance.
+   */
+  advanced?: boolean
 }
 
 /**

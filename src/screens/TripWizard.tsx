@@ -44,7 +44,10 @@ export function TripWizard({ open, onClose, onCreated }: {
 
   // Step 3 — how money will work (multi-select: a trip can use both)
   const [styles, setStyles] = useState<Set<MoneyStyle>>(new Set(['individual']))
-  const [fundAmount, setFundAmount] = useState('')
+  // Keyed by name, not id — members don't have ids yet at this point in the
+  // wizard. Names are unique within a trip (validateMemberName enforces it),
+  // so this is safe.
+  const [fundAmounts, setFundAmounts] = useState<Record<string, string>>({})
   const [forexCode, setForexCode] = useState('SAR')
   const [forexAmount, setForexAmount] = useState('')
   const [forexCost, setForexCost] = useState('')
@@ -55,7 +58,7 @@ export function TripWizard({ open, onClose, onCreated }: {
     setName(''); setDestination(''); setEndDate('')
     setOperatorName(''); setFriends([]); setFriendInput('')
     setStyles(new Set(['individual']))
-    setFundAmount(''); setForexAmount(''); setForexCost('')
+    setFundAmounts({}); setForexAmount(''); setForexCost('')
     setError('')
   }
 
@@ -89,11 +92,14 @@ export function TripWizard({ open, onClose, onCreated }: {
 
   async function finish() {
     setError('')
-    if (styles.has('fund') && fundAmount) {
-      try {
-        if (toMinor(fundAmount, baseCurrency) < 0) throw new Error()
-      } catch {
-        return setError('The fund amount doesn\u2019t look like a number.')
+    if (styles.has('fund')) {
+      for (const [who, amt] of Object.entries(fundAmounts)) {
+        if (!amt) continue
+        try {
+          if (toMinor(amt, baseCurrency) < 0) throw new Error()
+        } catch {
+          return setError(`${who}\u2019s contribution doesn\u2019t look like a number.`)
+        }
       }
     }
     if (styles.has('forex')) {
@@ -124,25 +130,27 @@ export function TripWizard({ open, onClose, onCreated }: {
     await db.members.add({
       id: operatorId, tripId, name: operatorFinal, isOperator: true, createdAt: now,
     })
-    const friendIds: string[] = []
+    const idByName: Record<string, string> = { [operatorFinal]: operatorId }
     for (const fname of friends) {
       const fid = uid()
       await db.members.add({ id: fid, tripId, name: fname, createdAt: now })
-      friendIds.push(fid)
+      idByName[fname] = fid
     }
 
     // Fund and forex are created as real rows, not flags — this is what makes
     // the module appear on Home/Money/Activity exactly the way it would if
     // added later by hand.
-    if (styles.has('fund') && fundAmount) {
-      try {
-        const amountMinor = toMinor(fundAmount, baseCurrency)
+    let fundTotalMinor = 0
+    if (styles.has('fund')) {
+      for (const [who, amt] of Object.entries(fundAmounts)) {
+        const memberId = idByName[who]
+        if (!amt || !memberId) continue
+        const amountMinor = toMinor(amt, baseCurrency)
         if (amountMinor > 0) {
-          await db.contributions.add({
-            id: uid(), tripId, memberId: operatorId, amountMinor, at: now,
-          })
+          await db.contributions.add({ id: uid(), tripId, memberId, amountMinor, at: now })
+          fundTotalMinor += amountMinor
         }
-      } catch { /* already validated above */ }
+      }
     }
     if (styles.has('forex') && forexAmount && forexCost) {
       try {
@@ -151,8 +159,8 @@ export function TripWizard({ open, onClose, onCreated }: {
         if (foreignMinor > 0 && baseMinor > 0) {
           await db.purchases.add({
             id: uid(), tripId, code: forexCode.toUpperCase(), foreignMinor, baseMinor,
-            source: styles.has('fund') && fundAmount ? 'fund' : 'personal',
-            payerId: styles.has('fund') && fundAmount ? undefined : operatorId,
+            source: fundTotalMinor > 0 ? 'fund' : 'personal',
+            payerId: fundTotalMinor > 0 ? undefined : operatorId,
             at: now,
           })
         }
@@ -260,16 +268,23 @@ export function TripWizard({ open, onClose, onCreated }: {
 
           {styles.has('fund') && (
             <Field
-              label={`Fund collected so far, in ${baseCurrency}`}
-              hint="Optional — you can add this from Money any time instead."
+              label={`Who's put money in so far, in ${baseCurrency}`}
+              hint="Optional — leave anyone at 0 and add it later from Money instead."
             >
-              <input
-                className="field tnum"
-                inputMode="decimal"
-                value={fundAmount}
-                onChange={(e) => setFundAmount(e.target.value)}
-                placeholder="20000"
-              />
+              <div className="space-y-2">
+                {[operatorName.trim() || 'Me', ...friends].map((who) => (
+                  <div key={who} className="flex items-center gap-3">
+                    <span className="flex-1 text-[14px] font-medium truncate">{who}</span>
+                    <input
+                      className="field tnum w-32 text-right"
+                      inputMode="decimal"
+                      value={fundAmounts[who] ?? ''}
+                      onChange={(e) => setFundAmounts((f) => ({ ...f, [who]: e.target.value }))}
+                      placeholder="0"
+                    />
+                  </div>
+                ))}
+              </div>
             </Field>
           )}
 

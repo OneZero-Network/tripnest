@@ -55,6 +55,9 @@ export interface ActivityEvent {
    * visually connect the two instead of showing an unexplained credit. */
   linkedId?: ID
   linkedTitle?: string
+  /** True when this event came from a non-default choice (custom split, a
+   * note, an adjusted payer) rather than the equal-split default. */
+  adjusted?: boolean
 }
 
 type Projector = (data: TripData, code: string, name: (id: ID | 'FUND') => string) => ActivityEvent[]
@@ -86,9 +89,10 @@ const projectExpenses: Projector = (data, code) => {
       title: e.title,
       detail: original
         ? `Refund for ${original.title} · ${formatMoney(Math.abs(value), code)}`
-        : `${e.category} · ${formatMoney(Math.abs(value), code)}${e.isRefund ? ' refunded' : ''}`,
+        : `${e.category} · ${formatMoney(Math.abs(value), code)}${e.isRefund ? ' refunded' : ''}${e.advanced ? ' · adjusted' : ''}`,
       linkedId: original?.id,
       linkedTitle: original?.title,
+      adjusted: e.advanced,
     }
   })
 }

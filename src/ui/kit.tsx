@@ -2,6 +2,7 @@ import { ChevronLeft, X } from 'lucide-react'
 import type { ReactNode } from 'react'
 import { useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { pushBack, popBack } from './backstack'
 
 export function Screen({ children }: { children: ReactNode }) {
   return (
@@ -178,9 +179,11 @@ export function Sheet({
     const h = (e: KeyboardEvent) => e.key === 'Escape' && onClose()
     window.addEventListener('keydown', h)
     document.body.style.overflow = 'hidden'
+    pushBack(onClose)
     return () => {
       window.removeEventListener('keydown', h)
       document.body.style.overflow = ''
+      popBack(onClose)
     }
   }, [open, onClose])
 

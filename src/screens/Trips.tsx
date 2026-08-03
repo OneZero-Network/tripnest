@@ -2,8 +2,8 @@ import { Download, MapPin, Plus, Upload } from 'lucide-react'
 import { useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { downloadJSON, exportEverything, importBundle } from '../db/db'
-import { useTrip, useTrips } from '../db/useTrip'
-import { formatCompact } from '../core/money'
+import { useTrip, useTrips, useTripsOverview } from '../db/useTrip'
+import { formatCompact, formatMoney } from '../core/money'
 import { Empty, Screen, Section, TopBar } from '../ui/kit'
 import { TripWizard } from './TripWizard'
 
@@ -53,6 +53,8 @@ export default function Trips() {
         className="hidden"
         onChange={(e) => e.target.files?.[0] && onImport(e.target.files[0])}
       />
+
+      <TripsOverview />
 
       <Section>
         {!trips ? null : trips.length === 0 ? (
@@ -119,6 +121,52 @@ export default function Trips() {
         }}
       />
     </Screen>
+  )
+}
+
+/**
+ * The app's actual landing page was a bare list — no reason to open it
+ * beyond picking a trip. This answers "how's my travel been going overall"
+ * in one glance: how many trips, how many still open, what's been spent.
+ *
+ * Deliberately does NOT sum across currencies into one number — a trip in
+ * INR and a trip in USD added together is a meaningless figure dressed up
+ * as a real one. Grouped by currency instead; almost everyone has one group.
+ */
+function TripsOverview() {
+  const rows = useTripsOverview()
+  if (!rows || rows.length === 0) return null
+
+  const openCount = rows.filter((r) => !r.trip.closedAt).length
+  const byCurrency = new Map<string, number>()
+  for (const r of rows) {
+    byCurrency.set(r.trip.baseCurrency, (byCurrency.get(r.trip.baseCurrency) ?? 0) + r.totalSpentMinor)
+  }
+
+  return (
+    <Section>
+      <div className="card px-5 py-4 flex items-center gap-5">
+        <Stat value={rows.length} label={rows.length === 1 ? 'Trip' : 'Trips'} />
+        <div className="w-px h-9 bg-surface-line" />
+        <Stat value={openCount} label={openCount === 1 ? 'Still open' : 'Still open'} />
+        <div className="w-px h-9 bg-surface-line" />
+        <div className="flex-1 min-w-0">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-ink-mute">Spent</p>
+          <p className="tnum text-[17px] font-semibold mt-0.5 truncate">
+            {[...byCurrency.entries()].map(([code, minor]) => formatMoney(minor, code)).join(' + ')}
+          </p>
+        </div>
+      </div>
+    </Section>
+  )
+}
+
+function Stat({ value, label }: { value: number; label: string }) {
+  return (
+    <div className="text-center shrink-0">
+      <p className="tnum text-[20px] font-semibold leading-none">{value}</p>
+      <p className="text-[10.5px] text-ink-mute mt-1">{label}</p>
+    </div>
   )
 }
 

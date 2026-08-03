@@ -1,6 +1,7 @@
 import { Activity as ActivityIcon, Home as HomeIcon, Plus, Scale, Users, Wallet } from 'lucide-react'
 import { useState } from 'react'
 import { HashRouter, NavLink, Navigate, Route, Routes, useParams } from 'react-router-dom'
+import { AndroidBack } from './AndroidBack'
 import Trips from './screens/Trips'
 import Home from './screens/Home'
 import Activity from './screens/Activity'
@@ -95,6 +96,7 @@ function TabLink({
 export default function App() {
   return (
     <HashRouter>
+      <AndroidBack />
       <div className="max-w-lg mx-auto min-h-full bg-surface-sunk">
         <Routes>
           <Route path="/" element={<Trips />} />

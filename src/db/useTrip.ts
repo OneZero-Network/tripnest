@@ -12,6 +12,26 @@ export function useTrips() {
   }, [])
 }
 
+/**
+ * One row per trip with just enough computed (total spent, currency, open/
+ * closed) to build a cross-trip overview. Deliberately separate from
+ * `useTrip` above: that hook is shaped for a single trip's workspace and
+ * computes settlement/activity/wallets that an overview card never needs.
+ */
+export function useTripsOverview() {
+  return useLiveQuery(async () => {
+    const trips = await db.trips.toArray()
+    const rows = await Promise.all(
+      trips.map(async (trip) => {
+        const data = await loadTripData(trip.id)
+        if (!data) return null
+        return { trip, totalSpentMinor: summarise(data).totalSpentBaseMinor }
+      }),
+    )
+    return rows.filter((r): r is NonNullable<typeof r> => r !== null)
+  }, [])
+}
+
 /** Everything a trip screen needs, recomputed whenever any row changes. */
 export function useTrip(tripId: ID | undefined) {
   return useLiveQuery(async () => {
