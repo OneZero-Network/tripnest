@@ -77,7 +77,7 @@ jobs:
       - name: Rename APKs
         run: |
           mkdir -p out
-          find android -name '*.apk' -exec sh -c \
+          find android -name '*.apk' -exec bash -c \
             'cp "$1" "out/tripnest-$(basename "$(dirname "$1")")-${GITHUB_SHA:0:7}.apk"' _ {} \;
           ls -lh out
 
